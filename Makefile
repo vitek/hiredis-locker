@@ -16,3 +16,11 @@ bench_locker.o: bench_common.h
 
 clean:
 	rm -f bench_native bench_locker bench_incr example *.o
+
+.PHONE: runtests
+runtests: redis_locker_tests.so runtests.py
+	python runtests.py
+
+
+redis_locker_tests.so: redis_locker_tests.pyx redis-locker.c redis-locker.h
+	python runtests_setup.py build_ext --inplace
