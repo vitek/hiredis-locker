@@ -132,6 +132,7 @@ int redis_lock_init_context(redisContext *c, redisReply **reply_error)
     return 0;
 }
 
+static
 redisReply *redis_lock_script(
     redisContext *c,
     const char *lock_key, size_t lock_key_len,
@@ -151,6 +152,7 @@ redisReply *redis_lock_script(
     return redisCommandArgv(c, 6, argv, lens);
 }
 
+static
 redisReply *redis_lock_script_data(
     redisContext *c,
     const char *lock_key, size_t lock_key_len,
@@ -171,6 +173,7 @@ redisReply *redis_lock_script_data(
     return redisCommandArgv(c, 7, argv, lens);
 }
 
+static
 redisReply *redis_unlock_script(
     redisContext *c,
     const char *lock_key, size_t lock_key_len,
@@ -189,6 +192,7 @@ redisReply *redis_unlock_script(
     return redisCommandArgv(c, 5, argv, lens);
 }
 
+static
 redisReply *redis_unlock_script_data_delete(
     redisContext *c,
     const char *lock_key, size_t lock_key_len,
@@ -208,6 +212,7 @@ redisReply *redis_unlock_script_data_delete(
     return redisCommandArgv(c, 6, argv, lens);
 }
 
+static
 redisReply *redis_unlock_script_data(
     redisContext *c,
     const char *lock_key, size_t lock_key_len,

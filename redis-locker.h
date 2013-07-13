@@ -82,14 +82,41 @@ int redis_lock_set_data(redis_lock_t *lock,
 /** Update lock's timestamp and expire at */
 int redis_lock_set_time(redis_lock_t *lock, double timestamp, double timeout);
 
-
+/**
+ * Try to lock redis key without retrieving data.
+ *
+ * @return redis reply as returned by lock script
+ **/
 int redis_lock_acquire(redis_lock_t *lock, redisContext *context);
+
+/**
+ * Try to lock redis key retrievning data.
+ *
+ * @return redis reply as returned by lock script
+ **/
 int redis_lock_acquire_data(redis_lock_t *lock, redisContext *context,
                             redisReply **data_reply);
 
+/**
+ * Unlock redis key without without data modification.
+ *
+ * @return redis reply as returned by unlock script
+ **/
 int redis_lock_release(redis_lock_t *lock, redisContext *context);
+
+/**
+ * Unlock redis key writing data back.
+ *
+ * @return redis reply as returned by unlock script
+ **/
 int redis_lock_release_data(redis_lock_t *lock, redisContext *context,
                             const char *data, size_t data_len);
+
+/**
+ * Unlock redis key deleting data.
+ *
+ * @return redis reply as returned by unlock script
+ **/
 int redis_lock_release_data_delete(redis_lock_t *lock, redisContext *context);
 
 
@@ -98,63 +125,6 @@ int redis_lock_release_data_delete(redis_lock_t *lock, redisContext *context);
  * @returns zero on success
  **/
 int redis_lock_init_context(redisContext *context, redisReply **reply_error);
-
-
-/**
- * Try to lock redis key without retrieving data.
- *
- * @return redis reply as returned by lock script
- **/
-redisReply *redis_lock_script(
-    redisContext *c,
-    const char *lock_key, size_t lock_key_len,
-    const char *timestamp, size_t timestamp_len,
-    const char *expire_at, size_t expire_at_len);
-
-/**
- * Try to lock redis key retrievning data.
- *
- * @return redis reply as returned by lock script
- **/
-redisReply *redis_lock_script_data(
-    redisContext *c,
-    const char *lock_key, size_t lock_key_len,
-    const char *data_key, size_t data_key_len,
-    const char *timestamp, size_t timestamp_len,
-    const char *expire_at, size_t expire_at_len);
-
-/**
- * Unlock redis key without without data modification.
- *
- * @return redis reply as returned by unlock script
- **/
-redisReply *redis_unlock_script(
-    redisContext *c,
-    const char *lock_key, size_t lock_key_len,
-    const char *expire_at, size_t expire_at_len);
-
-/**
- * Unlock redis key deleting data.
- *
- * @return redis reply as returned by unlock script
- **/
-redisReply *redis_unlock_script_data_delete(
-    redisContext *c,
-    const char *lock_key, size_t lock_key_len,
-    const char *data_key, size_t data_key_len,
-    const char *expire_at, size_t expire_at_len);
-
-/**
- * Unlock redis key writing data back.
- *
- * @return redis reply as returned by unlock script
- **/
-redisReply *redis_unlock_script_data(
-    redisContext *c,
-    const char *lock_key, size_t lock_key_len,
-    const char *data_key, size_t data_key_len,
-    const char *expire_at, size_t expire_at_len,
-    const char *data, size_t data_len);
 
 REDIS_LOCKER_CDECLS_END
 #endif /* REDIS_LOCKER_H */
