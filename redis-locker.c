@@ -408,6 +408,8 @@ int redis_lock_release(redis_lock_t *lock, redisContext *context)
         return -1;
     }
 
+    lock->is_locked = 0;
+
     status = reply->integer;
     freeReplyObject(reply);
 
@@ -443,6 +445,8 @@ int redis_lock_release_data(redis_lock_t *lock, redisContext *context,
         return -1;
     }
 
+    lock->is_locked = 0;
+
     status = reply->integer;
     freeReplyObject(reply);
 
@@ -475,6 +479,8 @@ int redis_lock_release_data_delete(redis_lock_t *lock, redisContext *context)
         redis_lock_set_error_reply(lock, reply);
         return -1;
     }
+
+    lock->is_locked = 0;
 
     status = reply->integer;
     freeReplyObject(reply);
