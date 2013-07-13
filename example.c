@@ -17,6 +17,29 @@ double gettime(void)
     return tv.tv_sec + tv.tv_usec * 1e-6;
 }
 
+static
+int redis_lock_acquire_data_wait(redis_lock_t *lock, redisContext *context,
+                                 redisReply **data_reply,
+                                 double lock_timeout,
+                                 unsigned long usecs)
+{
+    int ret;
+
+    while (1) {
+        redis_lock_set_time(lock, gettime(), lock_timeout);
+        ret = redis_lock_acquire_data(lock, context, data_reply);
+
+        if (ret != REDIS_LOCK_STATE_BUSY)
+            break;
+        printf("Busy sleeping...\n");
+        usleep(usecs);
+    }
+
+    return ret;
+}
+
+
+
 int main()
 {
     redisContext *c = redisConnect("localhost", 6379);
@@ -52,17 +75,8 @@ int main()
     }
 
     redis_lock_set_data(&lock, "counter", -1);
-    redis_lock_set_time(&lock, gettime(), 1);
 
-    while (1) {
-        ret = redis_lock_acquire_data(&lock, c, &data_reply);
-
-        if (ret != REDIS_LOCK_STATE_BUSY)
-            break;
-        printf("Busy sleeping...\n");
-        usleep(1000);
-        redis_lock_set_time(&lock, gettime(), 1);
-    }
+    ret = redis_lock_acquire_data_wait(&lock, c, &data_reply, .5, 1000);
 
     if (ret < 0) {
         fprintf(stderr, "Failed to lock key: %s",
