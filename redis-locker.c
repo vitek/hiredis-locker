@@ -338,21 +338,7 @@ bad_reply:
 
 int redis_lock_acquire(redis_lock_t *lock, redisContext *context)
 {
-    redisReply *reply;
-    int status;
-
-    redis_lock_check_timestamp(lock);
-
-    reply = redis_lock_script(
-        context,
-        lock->lock_key, lock->lock_key_len,
-        lock->timestamp, lock->timestamp_len,
-        lock->expire_at, lock->expire_at_len);
-
-    if ((status = redis_lock_fetch_status(lock, reply)) < 0)
-        return -1;
-    freeReplyObject(reply);
-    return status;
+    return redis_lock_acquire_data(lock, context, NULL);
 }
 
 int redis_lock_acquire_data(redis_lock_t *lock, redisContext *context,
@@ -363,12 +349,20 @@ int redis_lock_acquire_data(redis_lock_t *lock, redisContext *context,
 
     redis_lock_check_timestamp(lock);
 
-    reply = redis_lock_script_data(
-        context,
-        lock->lock_key, lock->lock_key_len,
-        lock->data_key, lock->data_key_len,
-        lock->timestamp, lock->timestamp_len,
-        lock->expire_at, lock->expire_at_len);
+    if (data_reply) {
+        reply = redis_lock_script_data(
+            context,
+            lock->lock_key, lock->lock_key_len,
+            lock->data_key, lock->data_key_len,
+            lock->timestamp, lock->timestamp_len,
+            lock->expire_at, lock->expire_at_len);
+    } else {
+        reply = redis_lock_script(
+            context,
+            lock->lock_key, lock->lock_key_len,
+            lock->timestamp, lock->timestamp_len,
+            lock->expire_at, lock->expire_at_len);
+    }
 
     if ((status = redis_lock_fetch_status(lock, reply)) < 0)
         return -1;
@@ -428,12 +422,21 @@ int redis_lock_release_data(redis_lock_t *lock, redisContext *context,
 
     redis_lock_check_timestamp(lock);
 
-    reply = redis_unlock_script_data(
-        context,
-        lock->lock_key, lock->lock_key_len,
-        lock->data_key, lock->data_key_len,
-        lock->expire_at, lock->expire_at_len,
-        data, data_len);
+
+    if (data) {
+        reply = redis_unlock_script_data(
+            context,
+            lock->lock_key, lock->lock_key_len,
+            lock->data_key, lock->data_key_len,
+            lock->expire_at, lock->expire_at_len,
+            data, data_len);
+    } else {
+        reply = redis_unlock_script_data_delete(
+            context,
+            lock->lock_key, lock->lock_key_len,
+            lock->data_key, lock->data_key_len,
+            lock->expire_at, lock->expire_at_len);
+    }
 
     if (!reply) {
         redis_lock_set_error_reply(lock, NULL);
@@ -456,34 +459,5 @@ int redis_lock_release_data(redis_lock_t *lock, redisContext *context,
 
 int redis_lock_release_data_delete(redis_lock_t *lock, redisContext *context)
 {
-    redisReply *reply;
-    int status;
-
-    if (!lock->is_locked)
-        return -1;
-
-    redis_lock_check_timestamp(lock);
-
-    reply = redis_unlock_script_data_delete(
-        context,
-        lock->lock_key, lock->lock_key_len,
-        lock->data_key, lock->data_key_len,
-        lock->expire_at, lock->expire_at_len);
-
-    if (!reply) {
-        redis_lock_set_error_reply(lock, NULL);
-        return -1;
-    }
-
-    if (reply->type != REDIS_REPLY_INTEGER || reply->integer < 0) {
-        redis_lock_set_error_reply(lock, reply);
-        return -1;
-    }
-
-    lock->is_locked = 0;
-
-    status = reply->integer;
-    freeReplyObject(reply);
-
-    return status;
+    return redis_lock_release_data(lock, context, NULL, 0);
 }
