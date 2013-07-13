@@ -35,6 +35,9 @@
 #define REDIS_LOCK_STATE_LOCKED   1 /** Locked */
 #define REDIS_LOCK_STATE_EXPIRED  2 /** Locked an expired lock */
 
+#define REDIS_UNLOCK_STATE_OK     1
+#define REDIS_UNLOCK_STATE_STOLEN 0
+
 #ifdef __cplusplus
 # define REDIS_LOCKER_CDECLS_BEGIN extern "C" {
 # define REDIS_LOCKER_CDECLS_END   };
