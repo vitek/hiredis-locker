@@ -13,7 +13,7 @@ int main(int argc, char **argv)
     redisReply *reply;
     double t0, t1;
     int i;
-    redis_lock_t lock;
+    redisLock lock;
 
     if (c == NULL || c->err) {
         if (c) {

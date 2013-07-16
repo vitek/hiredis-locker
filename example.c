@@ -18,7 +18,7 @@ double gettime(void)
 }
 
 static
-int redis_lock_acquire_data_wait(redis_lock_t *lock, redisContext *context,
+int redis_lock_acquire_data_wait(redisLock *lock, redisContext *context,
                                  redisReply **data_reply,
                                  double lock_timeout,
                                  unsigned long usecs)
@@ -43,7 +43,7 @@ int redis_lock_acquire_data_wait(redis_lock_t *lock, redisContext *context,
 int main()
 {
     redisContext *c = redisConnect("localhost", 6379);
-    redis_lock_t lock;
+    redisLock lock;
     redisReply *data_reply, *reply;
     long counter;
     int ret, len;

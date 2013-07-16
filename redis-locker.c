@@ -42,7 +42,7 @@
 
 typedef struct {
     char hexdigest[SHA1_HEXDIGEST_LEN + 1];
-} redis_script_t;
+} redisScript;
 
 
 static redisReply *redis_reply_error(const char *fmt, ...)
@@ -71,7 +71,7 @@ static redisReply *redis_reply_error(const char *fmt, ...)
 }
 
 static
-int redis_load_script(redisContext *c, redis_script_t *script,
+int redis_load_script(redisContext *c, redisScript *script,
                       const char *source, redisReply **reply_error)
 {
     const char *argv[] = {"SCRIPT", "LOAD", source};
@@ -102,7 +102,7 @@ int redis_load_script(redisContext *c, redis_script_t *script,
 
 int redis_lock_init_context(redisContext *c, redisReply **reply_error)
 {
-    redis_script_t script;
+    redisScript script;
 
     if (reply_error)
         *reply_error = NULL;
@@ -233,7 +233,7 @@ redisReply *redis_unlock_script_data(
     return redisCommandArgv(c, 7, argv, lens);
 }
 
-int redis_lock_init(redis_lock_t *lock,
+int redis_lock_init(redisLock *lock,
                     const char *lock_key, ssize_t lock_key_len)
 {
     if (lock_key_len < 0)
@@ -242,7 +242,7 @@ int redis_lock_init(redis_lock_t *lock,
     if ((size_t) lock_key_len > (sizeof(lock->lock_key) - 1))
         return -1;
 
-    memset(lock, 0, sizeof(redis_lock_t));
+    memset(lock, 0, sizeof(redisLock));
 
     strncpy(lock->lock_key, lock_key, lock_key_len);
     lock->lock_key_len = lock_key_len;
@@ -250,7 +250,7 @@ int redis_lock_init(redis_lock_t *lock,
     return 0;
 }
 
-int redis_lock_set_data(redis_lock_t *lock,
+int redis_lock_set_data(redisLock *lock,
                         const char *data_key, ssize_t data_key_len)
 {
     if (data_key_len < 0)
@@ -264,7 +264,7 @@ int redis_lock_set_data(redis_lock_t *lock,
     return 0;
 }
 
-void redis_lock_destroy(redis_lock_t *lock)
+void redis_lock_destroy(redisLock *lock)
 {
     if (lock->error_reply) {
         freeReplyObject(lock->error_reply);
@@ -272,7 +272,7 @@ void redis_lock_destroy(redis_lock_t *lock)
     }
 }
 
-int redis_lock_set_time(redis_lock_t *lock, double timestamp, double timeout)
+int redis_lock_set_time(redisLock *lock, double timestamp, double timeout)
 {
     double expire_at;
 
@@ -290,7 +290,7 @@ int redis_lock_set_time(redis_lock_t *lock, double timestamp, double timeout)
 
 
 /* set default timestamp and expire_at if no one is specified */
-static void redis_lock_check_timestamp(redis_lock_t *lock)
+static void redis_lock_check_timestamp(redisLock *lock)
 {
     if (lock->timestamp_len > 0)
         return;
@@ -302,7 +302,7 @@ static void redis_lock_check_timestamp(redis_lock_t *lock)
     lock->expire_at_len = 1;
 }
 
-static void redis_lock_set_error_reply(redis_lock_t *lock,
+static void redis_lock_set_error_reply(redisLock *lock,
                                        redisReply *error_reply)
 {
     if (lock->error_reply) {
@@ -313,7 +313,7 @@ static void redis_lock_set_error_reply(redis_lock_t *lock,
     lock->error_reply = error_reply;
 }
 
-static int redis_lock_fetch_status(redis_lock_t *lock, redisReply *reply)
+static int redis_lock_fetch_status(redisLock *lock, redisReply *reply)
 {
     int status;
 
@@ -341,12 +341,12 @@ bad_reply:
     return -1;
 }
 
-int redis_lock_acquire(redis_lock_t *lock, redisContext *context)
+int redis_lock_acquire(redisLock *lock, redisContext *context)
 {
     return redis_lock_acquire_data(lock, context, NULL);
 }
 
-int redis_lock_acquire_data(redis_lock_t *lock, redisContext *context,
+int redis_lock_acquire_data(redisLock *lock, redisContext *context,
                             redisReply **data_reply)
 {
     redisReply *reply;
@@ -382,7 +382,7 @@ int redis_lock_acquire_data(redis_lock_t *lock, redisContext *context,
 }
 
 
-int redis_lock_release(redis_lock_t *lock, redisContext *context)
+int redis_lock_release(redisLock *lock, redisContext *context)
 {
     redisReply *reply;
     int status;
@@ -416,7 +416,7 @@ int redis_lock_release(redis_lock_t *lock, redisContext *context)
 }
 
 
-int redis_lock_release_data(redis_lock_t *lock, redisContext *context,
+int redis_lock_release_data(redisLock *lock, redisContext *context,
                             const char *data, size_t data_len)
 {
     redisReply *reply;
@@ -462,7 +462,7 @@ int redis_lock_release_data(redis_lock_t *lock, redisContext *context,
 }
 
 
-int redis_lock_release_data_delete(redis_lock_t *lock, redisContext *context)
+int redis_lock_release_data_delete(redisLock *lock, redisContext *context)
 {
     return redis_lock_release_data(lock, context, NULL, 0);
 }

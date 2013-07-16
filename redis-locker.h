@@ -63,7 +63,7 @@ typedef struct {
 
     int is_locked;
     int state;
-} redis_lock_t;
+} redisLock;
 
 REDIS_LOCKER_CDECLS_BEGIN
 
@@ -73,31 +73,31 @@ REDIS_LOCKER_CDECLS_BEGIN
  * @param lock_key_len length of lock_key or -1
  * @return zero on success
  */
-int redis_lock_init(redis_lock_t *lock,
+int redis_lock_init(redisLock *lock,
                     const char *lock_key, ssize_t lock_key_len);
 /** Destroy lock object */
-void redis_lock_destroy(redis_lock_t *lock);
+void redis_lock_destroy(redisLock *lock);
 
 /** Set data key for locker */
-int redis_lock_set_data(redis_lock_t *lock,
+int redis_lock_set_data(redisLock *lock,
                         const char *data_key, ssize_t data_key_len);
 
 /** Update lock's timestamp and expire at */
-int redis_lock_set_time(redis_lock_t *lock, double timestamp, double timeout);
+int redis_lock_set_time(redisLock *lock, double timestamp, double timeout);
 
 /**
  * Try to lock redis key without retrieving data.
  *
  * @return redis reply as returned by lock script
  **/
-int redis_lock_acquire(redis_lock_t *lock, redisContext *context);
+int redis_lock_acquire(redisLock *lock, redisContext *context);
 
 /**
  * Try to lock redis key retrievning data.
  *
  * @return redis reply as returned by lock script
  **/
-int redis_lock_acquire_data(redis_lock_t *lock, redisContext *context,
+int redis_lock_acquire_data(redisLock *lock, redisContext *context,
                             redisReply **data_reply);
 
 /**
@@ -105,14 +105,14 @@ int redis_lock_acquire_data(redis_lock_t *lock, redisContext *context,
  *
  * @return redis reply as returned by unlock script
  **/
-int redis_lock_release(redis_lock_t *lock, redisContext *context);
+int redis_lock_release(redisLock *lock, redisContext *context);
 
 /**
  * Unlock redis key writing data back.
  *
  * @return redis reply as returned by unlock script
  **/
-int redis_lock_release_data(redis_lock_t *lock, redisContext *context,
+int redis_lock_release_data(redisLock *lock, redisContext *context,
                             const char *data, size_t data_len);
 
 /**
@@ -120,7 +120,7 @@ int redis_lock_release_data(redis_lock_t *lock, redisContext *context,
  *
  * @return redis reply as returned by unlock script
  **/
-int redis_lock_release_data_delete(redis_lock_t *lock, redisContext *context);
+int redis_lock_release_data_delete(redisLock *lock, redisContext *context);
 
 
 /**

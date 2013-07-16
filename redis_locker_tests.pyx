@@ -18,7 +18,7 @@ cdef extern from "redis-locker.h":
     ctypedef struct redisReply:
          pass
 
-    ctypedef struct redis_lock_t:
+    ctypedef struct redisLock:
          int state
          int is_locked
 
@@ -28,22 +28,22 @@ cdef extern from "redis-locker.h":
 
     int redis_lock_init_context(redisContext *context, redisReply **reply_error)
 
-    int redis_lock_init(redis_lock_t *lock,
+    int redis_lock_init(redisLock *lock,
                         char *lock_key, ssize_t lock_key_len)
 
-    int redis_lock_set_data(redis_lock_t *lock, char *data_key,
+    int redis_lock_set_data(redisLock *lock, char *data_key,
                             ssize_t data_key_len)
 
-    int redis_lock_set_time(redis_lock_t *lock, double timestamp,
+    int redis_lock_set_time(redisLock *lock, double timestamp,
                             double timeout)
 
-    int redis_lock_acquire(redis_lock_t *lock, redisContext *context)
-    int redis_lock_acquire_data(redis_lock_t *lock, redisContext *context,
+    int redis_lock_acquire(redisLock *lock, redisContext *context)
+    int redis_lock_acquire_data(redisLock *lock, redisContext *context,
                             redisReply **data_reply)
-    int redis_lock_release(redis_lock_t *lock, redisContext *context)
-    int redis_lock_release_data(redis_lock_t *lock, redisContext *context,
+    int redis_lock_release(redisLock *lock, redisContext *context)
+    int redis_lock_release_data(redisLock *lock, redisContext *context,
                                 char *data, size_t data_len)
-    int redis_lock_release_data_delete(redis_lock_t *lock,
+    int redis_lock_release_data_delete(redisLock *lock,
                                        redisContext *context)
 
 
@@ -85,7 +85,7 @@ class StolenLock(LockerError):
 
 
 cdef class RedisLocker(object):
-      cdef redis_lock_t lock
+      cdef redisLock lock
       cdef RedisContext context
 
       def __cinit__(self, RedisContext context, key):
