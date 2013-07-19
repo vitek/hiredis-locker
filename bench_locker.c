@@ -1,8 +1,10 @@
-#include <hiredis/hiredis.h>
+#include <unistd.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <hiredis/hiredis.h>
 
 #include "redis-locker.h"
 #include "bench_common.h"
@@ -11,9 +13,12 @@ int main(int argc, char **argv)
 {
     redisContext *c = redisConnect("localhost", 6379);
     redisReply *reply;
-    double t0, t1;
-    int i;
     redisLock lock;
+    char *keyname = "lock";
+
+    if (argc > 1)
+        keyname = argv[1];
+
 
     if (c == NULL || c->err) {
         if (c) {
@@ -36,53 +41,57 @@ int main(int argc, char **argv)
     }
 
 
-    if (redis_lock_init(&lock, "lock", -1)) {
+    if (redis_lock_init(&lock, keyname, -1)) {
         printf("redis_lock_init(): failed\n");
         exit(1);
     }
-
-    reply = redisCommand(c, "DEL lock");
-    check_reply(reply);
-    freeReplyObject(reply);
 
     reply = redisCommand(c, "DEL counter");
     check_reply(reply);
     freeReplyObject(reply);
 
-    t0 = gettime();
-
     redis_lock_set_data(&lock, "counter", -1);
-    redis_lock_set_time(&lock, gettime(), .1);
 
-    for (i = 0; i < TIMES; i++) {
-        redisReply *data_reply;
-        int ret;
-        long counter = 0;
-        char buf[100];
-        int len;
+    while (1) {
+        double t0, t1;
+        int i;
 
-        ret = redis_lock_acquire_data(&lock, c, &data_reply);
+        t0 = gettime();
+        for (i = 0; i < 10000; i++) {
+            redisReply *data_reply;
+            int ret;
+            long counter = 0;
+            char buf[100];
+            int len;
 
-        if (ret < 0)
-            break;
+            while (1) {
+                redis_lock_set_time(&lock, gettime(), .1);
+                ret = redis_lock_acquire_data(&lock, c, &data_reply);
 
-        if (ret == REDIS_LOCK_STATE_BUSY) {
-            fprintf(stderr, "oops, lock is busy\n");
+                if (ret > 0)
+                    break;
+                if (ret != REDIS_LOCK_STATE_BUSY) {
+                    fprintf(stderr, "oops\n");
+                    exit(1);
+                }
+                usleep(100);
+            }
+
+            if (data_reply->str)
+                counter = atoi(data_reply->str);
+            freeReplyObject(data_reply);
+
+            len = snprintf(buf, sizeof(buf), "%ld", counter + 1);
+
+            ret = redis_lock_release_data(&lock, c, buf, len);
+            if (ret != 1)
+                fprintf(stderr, "unlock script returned %d\n", ret);
         }
+        t1 = gettime();
 
-        if (data_reply->str)
-            counter = atoi(data_reply->str);
-        freeReplyObject(data_reply);
-
-        len = snprintf(buf, sizeof(buf), "%ld", counter + 1);
-
-        ret = redis_lock_release_data(&lock, c, buf, len);
-        if (ret != 1)
-            fprintf(stderr, "unlock script returned %d\n", ret);
+        printf("%s: %.3lf locks/sec\n", argv[0], i / (t1 - t0));
     }
-    t1 = gettime();
 
-    printf("%s: %.3lf locks/sec\n", argv[0], TIMES / (t1 - t0));
     return 0;
 }
 
