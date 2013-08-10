@@ -41,7 +41,8 @@
 
 struct RedisConnection;
 
-typedef int (*redis_connection_setup_t)(redisContext *context,
+typedef int (*redis_connection_setup_t)(struct RedisConnection *connection,
+                                        redisContext *context,
                                         void *data);
 
 typedef struct RedisConnection {
@@ -61,6 +62,7 @@ typedef struct RedisConnection {
     char *hostname;
     int port;
 
+    char *error;
     redisContext *context;
     double last_alive;
     double first_failure;
@@ -78,6 +80,9 @@ redisContext *redis_connection_get(redisConnection *connection,
 int redis_connection_mark_alive(redisConnection *connection,
                                 double current_time);
 int redis_connection_ping(redisConnection *connection);
+
+int redis_connection_set_error(redisConnection *connection,
+                               const char *error);
 
 REDIS_CONNECTION_CDECLS_END
 #endif /* REDIS_CONNECTION_H */

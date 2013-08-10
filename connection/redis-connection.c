@@ -63,14 +63,39 @@ void redis_connection_free(redisConnection *connection)
         redisFree(connection->context);
     if (connection->hostname)
         free(connection->hostname);
+    if (connection->error)
+        free(connection->error);
     free(connection);
 }
 
 void redis_connection_disconnect(redisConnection *connection)
 {
     if (connection->context) {
+        if (!connection->error && connection->context->err)
+            redis_connection_set_error(connection, connection->context->errstr);
         redisFree(connection->context);
         connection->context = NULL;
+    }
+}
+
+int redis_connection_set_error(redisConnection *connection, const char *error)
+{
+    if (connection->error) {
+        free(connection->error);
+        connection->error = NULL;
+    }
+
+    if (error)
+        connection->error = strdup(error);
+    return 0;
+}
+
+static
+void redis_connection_clear_error(redisConnection *connection)
+{
+    if (connection->error) {
+        free(connection->error);
+        connection->error = NULL;
     }
 }
 
@@ -89,10 +114,12 @@ int redis_connection_ping(redisConnection *connection)
         return -1;
     }
 
-    if (reply->type == REDIS_REPLY_STATUS)
+    if (reply->type == REDIS_REPLY_STATUS) {
         retval = 0;
-    else
+    } else {
+        redis_connection_set_error(connection, "PING failed");
         redis_connection_disconnect(connection);
+    }
 
     freeReplyObject(reply);
     return retval;
@@ -102,6 +129,8 @@ static int redis_connection_connect(redisConnection *connection)
 {
     if (connection->context)
         return -1;
+
+    redis_connection_clear_error(connection);
 
     if (connection->connect_timeout > 0) {
         struct timeval tv;
@@ -127,7 +156,7 @@ static int redis_connection_connect(redisConnection *connection)
         redisSetTimeout(connection->context, tv);
     }
 
-    if (connection->setup && connection->setup(connection->context,
+    if (connection->setup && connection->setup(connection, connection->context,
                                                connection->data)) {
         redis_connection_disconnect(connection);
         return -1;
@@ -157,6 +186,8 @@ redisContext *redis_connection_get(redisConnection *connection,
                                 connection->fail_timeout)) {
                 connection->failures = 0;
             } else if (connection->failures >= connection->max_fails) {
+                redis_connection_set_error(connection,
+                                           "Server is down");
                 return NULL;
             }
         }
@@ -171,6 +202,7 @@ redisContext *redis_connection_get(redisConnection *connection,
         connection->failures = 0;
         connection->first_failure = 0;
         connection->last_alive = current_time;
+        redis_connection_set_error(connection, NULL);
     }
 
     return connection->context;

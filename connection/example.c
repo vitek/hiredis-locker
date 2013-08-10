@@ -15,7 +15,8 @@ double gettime(void)
 }
 
 static
-int connection_setup(redisContext *context, char *password)
+int connection_setup(redisConnection *connection,
+                     redisContext *context, char *password)
 {
     redisReply *reply = redisCommand(context, "AUTH %s", password);
 
@@ -23,6 +24,7 @@ int connection_setup(redisContext *context, char *password)
         return -1;
 
     if (reply->type != REDIS_REPLY_STATUS) {
+        redis_connection_set_error(connection, "AUTH failed");
         freeReplyObject(reply);
         return -1;
     }
@@ -52,7 +54,8 @@ int main()
         sleep(1);
         context = redis_connection_get(connection, gettime());
         if (!context) {
-            fprintf(stderr, "redis_connection_get() failed, sleeping\n");
+            fprintf(stderr, "redis_connection_get() failed, error = %s\n",
+                    connection->error);
             fprintf(stderr,
                     "connection->failures = %u, "
                     "connection->first_failure = %.3lf\n",
