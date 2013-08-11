@@ -110,6 +110,7 @@ int redis_connection_ping(redisConnection *connection)
     reply = redisCommand(connection->context, "PING");
 
     if (!reply) {
+        redis_connection_set_error(connection, "PING failed");
         redis_connection_disconnect(connection);
         return -1;
     }
